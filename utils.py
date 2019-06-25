@@ -1,23 +1,81 @@
 import numpy as np
 # from threading import Thread
-from tqdm import tqdm
+from constants import MODEL_SIZE
 
 
-def load_txt_raw(fn=r'data/Tencent_AILab_ChineseEmbedding.txt'):
-    ret = []
-    with open(fn) as fin:
-        for line in tqdm(fin):
-            ret.append(line)
+def load_txt_raw(fn=r'data/Tencent_AILab_ChineseEmbedding.txt', mode='generator', dtype='float16'):
+    """
+    Load the word2vec dict from raw txt file.
+    Dict key is word and value is a np.ndarray of vector.
 
-    ret = {x[0]: np.array([float(_) for _ in x[1:]]) for x in ret[1:]}
-    return ret
+    :param fn: file name of the raw data file
+    :param mode: Use generator or load the whole file
+        generator: Use generator to save memory when load the txt file
+        normal: Normal loading process
+    :param dtype: dtype of the vector array,
+                default float16 is enough since the round of digit in the array is less than 5
+
+    :return: dict of word2vec model
+    """
+
+    if mode == 'generator':
+        # Use generator to save memory
+        def line_generator():
+            with open(fn) as fin_:
+                for line_ in fin_:
+                    yield list(line_.split(' '))
+                    del line_
+        ret = {x[0]: np.array([float(_) for _ in x[1:]], dtype=dtype) for x in line_generator()}
+        ret.pop(str(MODEL_SIZE))
+
+        return ret
+
+    if mode == 'normal':
+        ret = []
+        with open(fn) as fin:
+            for line in fin:
+                ret.append(list(line.split(' ')))
+                del line
+        ret = {x[0]: np.array([float(_) for _ in x[1:]], dtype=dtype) for x in ret[1:]}
+        return ret
+
+
+def load_txt_threading(dir=r'data/txt_s/', mode='generator', dtype='float16'):
+    pass
 
 
 def load_array_raw(keys=r'data/array_raw/words.txt', vecs=r'data/array_raw/vectors.npy'):
     pass
 
 
+def write_line_space(fout, lst):
+    fout.write(' '.join([str(x) for x in lst]) + '\n')
+
+
+def write_line_t(fout, lst):
+    fout.write(' '.join([str(x) for x in lst]) + '\n')
+
+
+def saveCSV(csv, fn):
+    """
+    Save a csv-like file into a .txt file
+    :param csv: a list or 2d-array
+    [[x11, x12, x13],
+    [x21, x22, x23],
+    [x31, x32, x33]]
+    :param fn: save file path
+    :return: None
+    """
+    with open(fn, 'w', encoding='utf-8') as fout:
+        for x in csv:
+            write_line_space(fout, x)
+
+
 if __name__ == '__main__':
-    for k,v in load_txt_raw().items():
-        print(k, v)
+
+    for k, v in load_txt_raw(mode='generator').items():
+        print(k)
+        print(v)
+        print(v.dtype)
         break
+
