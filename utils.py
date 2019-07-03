@@ -1,5 +1,8 @@
+import datetime
+from functools import reduce
 import numpy as np
-# from threading import Thread
+from multiprocessing import Pool, Queue, Process
+from tqdm import tqdm
 from constants import MODEL_SIZE
 
 
@@ -21,18 +24,23 @@ def load_txt_raw(fn=r'data/Tencent_AILab_ChineseEmbedding.txt', mode='generator'
     if mode == 'generator':
         # Use generator to save memory
         def line_generator():
-            with open(fn) as fin_:
-                for line_ in fin_:
+            with open(fn, encoding='utf-8') as fin_:
+                for line_ in tqdm(fin_):
                     yield list(line_.split(' '))
                     del line_
+                    # break
+
         ret = {x[0]: np.array([float(_) for _ in x[1:]], dtype=dtype) for x in line_generator()}
-        ret.pop(str(MODEL_SIZE))
+        try:
+            ret.pop(str(MODEL_SIZE))
+        except KeyError:
+            pass
 
         return ret
 
     if mode == 'normal':
         ret = []
-        with open(fn) as fin:
+        with open(fn, encoding='utf-8') as fin:
             for line in fin:
                 ret.append(list(line.split(' ')))
                 del line
@@ -40,8 +48,21 @@ def load_txt_raw(fn=r'data/Tencent_AILab_ChineseEmbedding.txt', mode='generator'
         return ret
 
 
-def load_txt_threading(dir=r'data/txt_s/', mode='generator', dtype='float16'):
-    pass
+def single_load_process(i, mode='generator', dtype='float16'):
+    fn = r'data/txt_s/raw_txt_%d.txt' % i
+    return load_txt_raw(fn, mode, dtype)
+
+
+def load_txt_multiprocess(mode='generator', dtype='float16'):
+    pool = Pool(9)
+    ret = []
+    for i in range(1, 10):
+        ret.append(pool.apply_async(single_load_process, args=(i, mode, dtype)))
+    pool.close()
+    pool.join()
+
+    ret = reduce(lambda x1, x2: {**x1, **x2}, [x.get() for x in ret])
+    return ret
 
 
 def load_array_raw(keys=r'data/array_raw/words.txt', vecs=r'data/array_raw/vectors.npy'):
@@ -72,10 +93,15 @@ def saveCSV(csv, fn):
 
 
 if __name__ == '__main__':
+    t1 = datetime.datetime.now()
 
-    for k, v in load_txt_raw(mode='generator').items():
-        print(k)
-        print(v)
-        print(v.dtype)
+    model = load_txt_multiprocess()
+    # model = load_txt_raw()
+    print(len(model))
+
+    for k, v in model.items():
+        print(k, v)
         break
 
+    t2 = datetime.datetime.now()
+    print((t2 - t1).seconds)
