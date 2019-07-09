@@ -41,7 +41,7 @@ for line in line_generator():
             write_str_line(fout, current_ret)
         current_ret = []
         print('file saved')
-    if counter == MODEL_SIZE:
+    if counter > MODEL_SIZE:
         file_num += 1
         with open(r'data/txt_s/raw_txt_%d.txt' % file_num, 'w', encoding='utf-8') as fout:
             write_str_line(fout, current_ret)

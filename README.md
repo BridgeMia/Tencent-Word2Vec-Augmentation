@@ -6,6 +6,22 @@ Modification and Augmentation for Tencent AI Lab Embedding Corpus for Chinese Wo
  - Paper: Yan Song, Shuming Shi, Jing Li, and Haisong Zhang. Directional Skip-Gram: Explicitly Distinguishing Left and Right Context for Word Embeddings. 
  NAACL 2018 (Short Paper) [[pdf](https://aclweb.org/anthology/N18-2028)]
 
+## Preparation
+
+Run files below **sequentially**: 
+
+1. Split the raw txt file into `9` pieces, for multi-process loading
+
+   run `split_raw_txt.py`
+
+2. Transfer txt files to npy files for faster loading and less storage consumption
+
+   run `txt2npy.py`
+
+3. Merge split npy files into a single file
+
+   run `merge_npy.py`
+
 ## Modification
 
 ### A dictionary model
@@ -33,5 +49,11 @@ vector:
   - Load separate txt files in a multi-process way
   - `load_mode`: default `generator` to save memory, or use `normal` for normal loader
   - `dtype`: vector array datatype, default `'float16'` is abundant
+
+- `load_array_multiprocess`
+  - Load separate npy files(arrays) and corresponding txt files(words)
+- `load_array_single`
+  - Load a single npy file(arrays) and corresponding txt file(words)
+  - 
 
 ### A trainable Gensim model

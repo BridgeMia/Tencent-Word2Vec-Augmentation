@@ -1,9 +1,18 @@
-import datetime
 from functools import reduce
 import numpy as np
-from multiprocessing import Pool, Queue, Process
+from multiprocessing import Pool
 from tqdm import tqdm
 from constants import MODEL_SIZE
+
+__all__ = [
+    'load_txt_raw',
+    'load_txt_multiprocess',
+    'load_array_single',
+    'load_array_multiprocess',
+    'load_list',
+    'save_list',
+    'saveCSV'
+]
 
 
 def load_txt_raw(fn=r'data/Tencent_AILab_ChineseEmbedding.txt', mode='generator', dtype='float16'):
@@ -11,7 +20,7 @@ def load_txt_raw(fn=r'data/Tencent_AILab_ChineseEmbedding.txt', mode='generator'
     Load the word2vec dict from raw txt file.
     Dict key is word and value is a np.ndarray of vector.
 
-    :param fn: file name of the raw data file
+    :param fn: File name of the raw data file
     :param mode: Use generator or load the whole file
         generator: Use generator to save memory when load the txt file
         normal: Normal loading process
@@ -65,8 +74,29 @@ def load_txt_multiprocess(mode='generator', dtype='float16'):
     return ret
 
 
-def load_array_raw(keys=r'data/array_raw/words.txt', vecs=r'data/array_raw/vectors.npy'):
-    pass
+def load_array_single(key_fn: str, vec_fn: str):
+    keys = load_list(key_fn)
+    vecs = np.load(vec_fn)
+    vecs = [np.hstack(v) for v in np.split(vecs, len(vecs))]
+    return {k: v for k, v in zip(keys, vecs)}
+
+
+def single_load_array_process(i: int):
+    key_fn_i = r'data/array_raw/words_%d.txt' % i
+    vec_fn_i = r'data/array_raw/vectors_%d.npy' % i
+    return load_array_single(key_fn_i, vec_fn_i)
+
+
+def load_array_multiprocess():
+    pool = Pool(9)
+    ret = []
+    for i in range(1, 10):
+        ret.append(pool.apply_async(single_load_array_process, args=[i]))
+    pool.close()
+    pool.join()
+    
+    ret = reduce(lambda x1, x2: {**x1, **x2}, [x.get() for x in ret])
+    return ret
 
 
 def write_line_space(fout, lst):
@@ -92,16 +122,31 @@ def saveCSV(csv, fn):
             write_line_space(fout, x)
 
 
+def save_list(st, ofn):
+    """
+    Save a list into a .txt file
+    :param st: list to be saved
+    :param ofn: save file path
+    :return: None
+    """
+    with open(ofn, "w", encoding="utf-8") as fout:
+        for k in st:
+            fout.write(str(k) + "\n")
+   
+            
+def load_list(fn):
+    """
+    load a list from a .txt file
+    :param fn: load file path
+    :return: list
+    """
+    with open(fn, encoding="utf-8") as fin:
+        st = list(ll for ll in fin.read().split('\n') if ll != "")
+    return st
+
+
 if __name__ == '__main__':
-    t1 = datetime.datetime.now()
-
-    model = load_txt_multiprocess()
-    # model = load_txt_raw()
-    print(len(model))
-
-    for k, v in model.items():
-        print(k, v)
-        break
-
-    t2 = datetime.datetime.now()
-    print((t2 - t1).seconds)
+    sp_model = load_array_multiprocess(
+        # r'data/array_raw/words_1.txt',
+        # r'data/array_raw/vectors_1.npy'
+    )
