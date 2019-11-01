@@ -1,7 +1,7 @@
 import os
 
 import numpy as np
-from utils import save_list
+from utils import save_list, load_txt_raw
 
 """
 Script: Transfer .txt raw data to .npy data

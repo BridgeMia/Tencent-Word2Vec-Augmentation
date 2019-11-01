@@ -47,5 +47,5 @@ for line in line_generator():
             write_str_line(fout, current_ret)
 
 
-print('Raw file slit into 8 pieces and saved in /data/txt_s/ dir')
+print('Raw file slit into 8~9 pieces and saved in /data/txt_s/ dir')
 
